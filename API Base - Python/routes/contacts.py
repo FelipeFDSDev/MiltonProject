@@ -6,6 +6,7 @@ import io, csv
 
 from database import SessionLocal, Contact as DBContact
 from models import Contact as PydanticContact, ContactBase
+from auth import verificar_token
 
 router = APIRouter(prefix="/contacts", tags=["Contatos"])
 
@@ -17,7 +18,7 @@ def get_db():
         db.close()
 
 @router.post("/", response_model=PydanticContact, status_code=201)
-def create_contact(contact: ContactBase, db: Session = Depends(get_db)):
+def create_contact(contact: ContactBase, db: Session = Depends(get_db),usuario: str = Depends(verificar_token)):
     db_contact = db.query(DBContact).filter(DBContact.email == contact.email).first()
     if db_contact:
         raise HTTPException(status_code=400, detail="Email já cadastrado.")
@@ -28,18 +29,18 @@ def create_contact(contact: ContactBase, db: Session = Depends(get_db)):
     return db_contact
 
 @router.get("/", response_model=List[PydanticContact])
-def list_contacts(db: Session = Depends(get_db)):
+def list_contacts(db: Session = Depends(get_db),usuario: str = Depends(verificar_token)):
     return db.query(DBContact).all()
 
 @router.get("/{contact_id}", response_model=PydanticContact)
-def read_contact(contact_id: int, db: Session = Depends(get_db)):
+def read_contact(contact_id: int, db: Session = Depends(get_db),usuario: str = Depends(verificar_token)):
     contact = db.query(DBContact).filter(DBContact.id == contact_id).first()
     if not contact:
         raise HTTPException(status_code=404, detail="Contato não encontrado.")
     return contact
 
 @router.put("/{contact_id}", response_model=PydanticContact)
-def update_contact(contact_id: int, contact: ContactBase, db: Session = Depends(get_db)):
+def update_contact(contact_id: int, contact: ContactBase, db: Session = Depends(get_db),usuario: str = Depends(verificar_token)):
     db_contact = db.query(DBContact).filter(DBContact.id == contact_id).first()
     if not db_contact:
         raise HTTPException(status_code=404, detail="Contato não encontrado.")
@@ -53,7 +54,7 @@ def update_contact(contact_id: int, contact: ContactBase, db: Session = Depends(
     return db_contact
 
 @router.delete("/{contact_id}", status_code=204)
-def delete_contact(contact_id: int, db: Session = Depends(get_db)):
+def delete_contact(contact_id: int, db: Session = Depends(get_db),usuario: str = Depends(verificar_token)):
     contact = db.query(DBContact).filter(DBContact.id == contact_id).first()
     if not contact:
         raise HTTPException(status_code=404, detail="Contato não encontrado.")
@@ -62,7 +63,7 @@ def delete_contact(contact_id: int, db: Session = Depends(get_db)):
 
 # Exportar CSV
 @router.get("/export/csv")
-def export_contacts(contact_id: Optional[int] = None, db: Session = Depends(get_db)):
+def export_contacts(contact_id: Optional[int] = None, db: Session = Depends(get_db),usuario: str = Depends(verificar_token)):
     contacts = db.query(DBContact).all() if not contact_id else [db.query(DBContact).get(contact_id)]
     if not contacts:
         raise HTTPException(status_code=404, detail="Nenhum contato encontrado.")
@@ -78,7 +79,7 @@ def export_contacts(contact_id: Optional[int] = None, db: Session = Depends(get_
 
 # Importar CSV
 @router.post("/import/csv")
-def import_contacts(file: UploadFile = File(...), db: Session = Depends(get_db)):
+def import_contacts(file: UploadFile = File(...), db: Session = Depends(get_db),usuario: str = Depends(verificar_token)):
     if file.content_type != "text/csv":
         raise HTTPException(status_code=400, detail="Envie um arquivo CSV válido.")
     reader = csv.DictReader(io.StringIO(file.file.read().decode("utf-8")))
@@ -88,3 +89,4 @@ def import_contacts(file: UploadFile = File(...), db: Session = Depends(get_db))
         imported += 1
     db.commit()
     return {"status": "sucesso", "importados": imported}
+

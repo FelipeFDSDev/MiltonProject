@@ -22,3 +22,13 @@ app.include_router(mensagens.router)
 @app.get("/")
 def health_check():
     return {"status": "ok", "service": "Communication and Scheduling API"}
+
+@app.post("/login", tags=["Autenticação"])
+def login(username: str, password: str):
+    """
+    Faz login e retorna um token JWT.
+    """
+    if username == "admin" and password == "1234":
+        token = criar_token(username)
+        return {"access_token": token, "token_type": "bearer"}
+    raise HTTPException(status_code=401, detail="Credenciais inválidas")
