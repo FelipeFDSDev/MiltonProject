@@ -2,8 +2,14 @@
 fastapi
 uvicorn[standard]
 pydantic
-# NOVO: ORM (SQLAlchemy)
+# ORM (SQLAlchemy)
 sqlalchemy
+# Celery e Redis para agendamento
 celery
 redis
+celery[redis]
+# Canais de comunicação
 twilio
+# Utilitários
+python-multipart
+python-dotenv

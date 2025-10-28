@@ -15,5 +15,7 @@ class WhatsappChannel:
                 to=f"whatsapp:{numero}"
             )
             print(f"[WHATSAPP] Mensagem enviada para {numero}")
+            return True
         except Exception as e:
             print(f"[WHATSAPP] Erro ao enviar: {e}")
+            return False

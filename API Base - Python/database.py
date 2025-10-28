@@ -1,6 +1,6 @@
-from sqlalchemy import create_engine, Column, Integer, String
+from sqlalchemy import create_engine, Column, Integer, String, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, relationship
 
 # Configuração do banco de dados SQLite
 # O caminho abaixo cria o arquivo 'sql_app.db' na pasta raiz do projeto
@@ -36,6 +36,12 @@ class Contact(Base):
     phone = Column(String, nullable=True) # Opcional no Pydantic, nullable no DB
     codExterno = Column(String, nullable=True, unique=True)
     canalPref = Column(String)
+    
+    # Foreign Key para Cliente (opcional - se quiser vincular contatos a clientes)
+    cliente_id = Column(Integer, ForeignKey('clientes.id'), nullable=True)
+    
+    # Relacionamento com Cliente
+    cliente = relationship("Cliente", back_populates="contatos")
 # Cria as tabelas no banco de dados (se não existirem)
 def create_db_and_tables():
     Base.metadata.create_all(bind=engine)

@@ -1,3 +1,5 @@
+# Criar o ambiente virtual 
+python -m venv venv
 # Certifique-se de que o ambiente está ativado:
 .\venv\Scripts\activate
 
@@ -9,3 +11,27 @@ python -m uvicorn main:app --reload
 
 http://127.0.0.1:8000/
 http://127.0.0.1:8000/docs
+
+
+
+#Como Rodar o Projeto, versão com adições (4 Terminais)
+
+1° Terminal, você deve criar o container e verificar se ele esta rodando: 
+Criar:
+docker run -d --name redis-milton -p 6379:6379 redis
+
+Testar se esta rodando: 
+docker ps
+
+(Terminais 2, 3 e 4)
+venv\Scripts\activate em ambos os terminais 
+2° Terminal, este processo cuida das requisições HTTP e salva os agendamentos no SQLite.
+python -m uvicorn main:app --reload
+
+
+3° Terminal, este processo pega as tarefas da fila do Redis e executa o envio de e-mails ou WhatsApp.
+celery -A celery_app worker --loglevel=info -P solo
+
+4° Terminal, Este processo é o "relógio" que acorda periodicamente (a cada 60 segundos) para 
+verificar quais agendamentos estão no banco de dados e coloca-os na fila do Redis.
+celery -A celery_app beat --loglevel=info

@@ -1,7 +1,11 @@
 from fastapi import FastAPI
 from database import create_db_and_tables
-from routes import contacts, mensagens
+from routes import contacts, mensagens, agendamentos
 from dotenv import load_dotenv
+
+# Importar todos os modelos para garantir que sejam registrados no Base.metadata
+import models  # Isso garante que Cliente, HistoricoMensagem e MensagemAgendada sejam criados
+from database import Contact  # Isso garante que Contact seja criado
 
 load_dotenv()
 
@@ -18,6 +22,7 @@ def startup():
 # Inclui rotas
 app.include_router(contacts.router)
 app.include_router(mensagens.router)
+app.include_router(agendamentos.router)
 
 @app.get("/")
 def health_check():

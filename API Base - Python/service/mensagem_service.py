@@ -7,9 +7,18 @@ class MensagemService:
         self.whatsapp_channel = WhatsappChannel()
 
     def enviar_mensagem(self, canal: str, destinatario: str, conteudo: str, assunto: str = None):
-        if canal.lower() == "email":
-            self.email_channel.enviar(destinatario, assunto or "Notificação Automática", conteudo)
-        elif canal.lower() == "whatsapp":
-            self.whatsapp_channel.enviar(destinatario, conteudo)
-        else:
-            print(f"[ERRO] Canal '{canal}' não suportado.")
+        """
+        Envia uma mensagem pelo canal especificado.
+        Retorna True se enviado com sucesso, False caso contrário.
+        """
+        try:
+            if canal.lower() == "email":
+                return self.email_channel.enviar(destinatario, assunto or "Notificação Automática", conteudo)
+            elif canal.lower() == "whatsapp":
+                return self.whatsapp_channel.enviar(destinatario, conteudo)
+            else:
+                print(f"[ERRO] Canal '{canal}' não suportado.")
+                return False
+        except Exception as e:
+            print(f"[ERRO] Exceção ao enviar mensagem: {e}")
+            return False
