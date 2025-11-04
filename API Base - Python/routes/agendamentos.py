@@ -1,7 +1,9 @@
-from fastapi import APIRouter, HTTPException, Depends
-from typing import List
+from fastapi import APIRouter, Query, HTTPException, Depends
+from typing import List, Optional
 from sqlalchemy.orm import Session
 from datetime import datetime
+
+
 
 from database import SessionLocal
 from models import MensagemAgendada, MensagemAgendadaCreate, MensagemAgendadaUpdate, MensagemAgendadaOut
@@ -79,6 +81,28 @@ def listar_agendamentos(
     mensagens = query.order_by(MensagemAgendada.data_agendamento.desc()).offset(skip).limit(limit).all()
     return mensagens
 
+@router.get("/consulta", response_model=List[MensagemAgendadaOut])
+def consulta_agendamentos(
+    destinatario: Optional[str] = None,
+    status: Optional[str] = None,
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db)
+):
+    """
+    Consulta agendamentos filtrando por destinatário (contato) e/ou status.
+    - **destinatario**: email/telefone do contato
+    - **status**: AGENDADO, ENVIADO, CANCELADO, ERRO
+    """
+    query = db.query(MensagemAgendada)
+
+    if destinatario:
+        query = query.filter(MensagemAgendada.destinatario.ilike(f"%{destinatario}%"))
+    if status:
+        query = query.filter(MensagemAgendada.status == status.upper())
+
+    resultados = query.order_by(MensagemAgendada.data_agendamento.desc()).offset(skip).limit(limit).all()
+    return resultados
 
 @router.get("/{agendamento_id}", response_model=MensagemAgendadaOut)
 def obter_agendamento(agendamento_id: int, db: Session = Depends(get_db)):
@@ -179,3 +203,5 @@ def processar_agendamentos_manual(db: Session = Depends(get_db)):
         "status": "processado",
         "mensagens_processadas": processadas
     }
+
+

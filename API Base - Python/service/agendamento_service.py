@@ -20,7 +20,6 @@ class AgendamentoService:
         """
         db: Session = SessionLocal()
         try:
-            # Busca mensagens com status AGENDADO e data_agendamento <= agora
             agora = datetime.utcnow()
             mensagens_pendentes = db.query(MensagemAgendada).filter(
                 MensagemAgendada.status == "AGENDADO",
@@ -30,7 +29,6 @@ class AgendamentoService:
             processadas = 0
             for mensagem in mensagens_pendentes:
                 try:
-                    # Tenta enviar a mensagem
                     sucesso = self.mensagem_service.enviar_mensagem(
                         canal=mensagem.canal,
                         destinatario=mensagem.destinatario,
@@ -86,3 +84,14 @@ class AgendamentoService:
         return db.query(MensagemAgendada).filter(
             MensagemAgendada.status == "AGENDADO"
         ).order_by(MensagemAgendada.data_agendamento).all()
+
+    def listar_agendamentos(self):
+        """
+        Retorna todos os agendamentos cadastrados.
+        """
+        db: Session = SessionLocal()
+        try:
+            return db.query(MensagemAgendada).all()
+        finally:
+            db.close()
+

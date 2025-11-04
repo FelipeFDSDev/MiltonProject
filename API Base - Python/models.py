@@ -134,3 +134,4 @@ class MensagemAgendada(Base):
     criado_em = Column(DateTime, default=datetime.utcnow)
     enviado_em = Column(DateTime, nullable=True)
     erro_mensagem = Column(Text, nullable=True)
+
