@@ -13,3 +13,9 @@ twilio
 # Utilitários
 python-multipart
 python-dotenv
+# Autenticação
+python-jose[cryptography]
+passlib[bcrypt]>=1.7.4
+bcrypt>=4.0.0
+python-multipart
+email-validator

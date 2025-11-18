@@ -1,40 +1,23 @@
-from fastapi import APIRouter, Query, HTTPException, Depends
+from fastapi import APIRouter, Query, HTTPException, Depends, status
 from typing import List, Optional
 from sqlalchemy.orm import Session
 from datetime import datetime
 
-
-
-from database import SessionLocal
-from models import MensagemAgendada, MensagemAgendadaCreate, MensagemAgendadaUpdate, MensagemAgendadaOut
+from database import SessionLocal, MensagemAgendada, User
+from models import MensagemAgendadaCreate, MensagemAgendadaUpdate, MensagemAgendadaOut
+from auth import get_current_active_user
+from dependencies import get_db
 from service.agendamento_service import AgendamentoService
 
 router = APIRouter(prefix="/agendamentos", tags=["Agendamentos"])
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
-
-@router.post("/", response_model=MensagemAgendadaOut, status_code=201)
-def criar_agendamento(mensagem: MensagemAgendadaCreate, db: Session = Depends(get_db)):
-    """
-    Cria um novo agendamento de mensagem.
-    
-    Exemplo:
-    ```json
-    {
-        "canal": "email",
-        "destinatario": "cliente@teste.com",
-        "assunto": "Lembrete",
-        "conteudo": "Sua consulta é amanhã às 14h",
-        "data_agendamento": "2025-11-03T14:00:00"
-    }
-    ```
-    """
+@router.post("/", response_model=MensagemAgendadaOut, status_code=status.HTTP_201_CREATED)
+async def criar_agendamento(
+    mensagem: MensagemAgendadaCreate,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
     # Valida se a data de agendamento é futura
     if mensagem.data_agendamento <= datetime.utcnow():
         raise HTTPException(
@@ -59,10 +42,11 @@ def criar_agendamento(mensagem: MensagemAgendadaCreate, db: Session = Depends(ge
 
 
 @router.get("/", response_model=List[MensagemAgendadaOut])
-def listar_agendamentos(
+async def listar_agendamentos(
     status: str = None,
     skip: int = 0,
     limit: int = 100,
+    current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -82,11 +66,12 @@ def listar_agendamentos(
     return mensagens
 
 @router.get("/consulta", response_model=List[MensagemAgendadaOut])
-def consulta_agendamentos(
+async def consulta_agendamentos(
     destinatario: Optional[str] = None,
     status: Optional[str] = None,
     skip: int = 0,
     limit: int = 100,
+    current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -105,7 +90,11 @@ def consulta_agendamentos(
     return resultados
 
 @router.get("/{agendamento_id}", response_model=MensagemAgendadaOut)
-def obter_agendamento(agendamento_id: int, db: Session = Depends(get_db)):
+async def obter_agendamento(
+    agendamento_id: int,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
     """
     Obtém detalhes de um agendamento específico.
     """
@@ -118,9 +107,10 @@ def obter_agendamento(agendamento_id: int, db: Session = Depends(get_db)):
 
 
 @router.put("/{agendamento_id}", response_model=MensagemAgendadaOut)
-def atualizar_agendamento(
+async def atualizar_agendamento(
     agendamento_id: int,
     mensagem_update: MensagemAgendadaUpdate,
+    current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -158,8 +148,12 @@ def atualizar_agendamento(
     return mensagem
 
 
-@router.delete("/{agendamento_id}", status_code=200)
-def cancelar_agendamento(agendamento_id: int, db: Session = Depends(get_db)):
+@router.delete("/{agendamento_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def cancelar_agendamento(
+    agendamento_id: int,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
     """
     Cancela um agendamento.
     Só é possível cancelar agendamentos com status AGENDADO.
@@ -181,7 +175,10 @@ def cancelar_agendamento(agendamento_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/ativos/listar", response_model=List[MensagemAgendadaOut])
-def listar_agendamentos_ativos(db: Session = Depends(get_db)):
+async def listar_agendamentos_ativos(
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
     """
     Lista apenas os agendamentos ativos (status AGENDADO).
     Ordenados por data de agendamento.
@@ -190,8 +187,11 @@ def listar_agendamentos_ativos(db: Session = Depends(get_db)):
     return service.obter_agendamentos_ativos(db)
 
 
-@router.post("/processar/manual", status_code=200)
-def processar_agendamentos_manual(db: Session = Depends(get_db)):
+@router.post("/processar/manual", status_code=status.HTTP_200_OK)
+async def processar_agendamentos_manual(
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
     """
     Processa manualmente as mensagens agendadas que já passaram do horário.
     Útil para testes ou processamento forçado.

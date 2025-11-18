@@ -1,8 +1,7 @@
 from datetime import datetime
 from sqlalchemy.orm import Session
-from models import MensagemAgendada
+from database import SessionLocal, MensagemAgendada
 from service.mensagem_service import MensagemService
-from database import SessionLocal
 
 
 class AgendamentoService:

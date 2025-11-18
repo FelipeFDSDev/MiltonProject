@@ -1,6 +1,7 @@
-from sqlalchemy import create_engine, Column, Integer, String, ForeignKey
+from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, Text, DateTime, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
+from datetime import datetime
 
 # Configuração do banco de dados SQLite
 # O caminho abaixo cria o arquivo 'sql_app.db' na pasta raiz do projeto
@@ -42,6 +43,59 @@ class Contact(Base):
     
     # Relacionamento com Cliente
     cliente = relationship("Cliente", back_populates="contatos")
-# Cria as tabelas no banco de dados (se não existirem)
+
+# Tabela de Clientes
+class Cliente(Base):
+    __tablename__ = "clientes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    nome = Column(String, nullable=False)
+    email = Column(String, unique=True, index=True, nullable=False)
+    telefone = Column(String, nullable=True)
+    criado_em = Column(DateTime, default=datetime.utcnow)
+    
+    # Relacionamento com contatos
+    contatos = relationship("Contact", back_populates="cliente")
+
+# Tabela de Histórico de Mensagens
+class HistoricoMensagem(Base):
+    __tablename__ = "historico_mensagens"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    canal = Column(String, nullable=False)
+    destinatario = Column(String, nullable=False)
+    conteudo = Column(Text, nullable=False)
+    status = Column(String, default="PENDENTE")
+    data_envio = Column(DateTime, default=datetime.utcnow)
+
+# Tabela de Mensagens Agendadas
+class MensagemAgendada(Base):
+    __tablename__ = "mensagens_agendadas"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    canal = Column(String, nullable=False)
+    destinatario = Column(String, nullable=False)
+    assunto = Column(String, nullable=True)
+    conteudo = Column(Text, nullable=False)
+    data_agendamento = Column(DateTime, nullable=False)
+    status = Column(String, default="AGENDADO")
+    criado_em = Column(DateTime, default=datetime.utcnow)
+    enviado_em = Column(DateTime, nullable=True)
+    erro_mensagem = Column(Text, nullable=True)
+
+# Tabela de Usuários
+class User(Base):
+    __tablename__ = "users"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, unique=True, index=True, nullable=False)
+    email = Column(String, unique=True, index=True, nullable=False)
+    full_name = Column(String, nullable=True)
+    hashed_password = Column(String, nullable=False)
+    disabled = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    last_login = Column(DateTime, nullable=True)
+
 def create_db_and_tables():
+    """Cria todas as tabelas no banco de dados se não existirem."""
     Base.metadata.create_all(bind=engine)
