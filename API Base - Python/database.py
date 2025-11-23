@@ -41,8 +41,9 @@ class Contact(Base):
     # Foreign Key para Cliente (opcional - se quiser vincular contatos a clientes)
     cliente_id = Column(Integer, ForeignKey('clientes.id'), nullable=True)
     
-    # Relacionamento com Cliente
+    # Relacionamentos
     cliente = relationship("Cliente", back_populates="contatos")
+    mensagens_agendadas = relationship("MensagemAgendada", back_populates="contato", cascade="all, delete-orphan")
 
 # Tabela de Clientes
 class Cliente(Base):
@@ -73,6 +74,7 @@ class MensagemAgendada(Base):
     __tablename__ = "mensagens_agendadas"
     
     id = Column(Integer, primary_key=True, index=True)
+    contato_id = Column(Integer, ForeignKey('contacts.id'), nullable=False)
     canal = Column(String, nullable=False)
     destinatario = Column(String, nullable=False)
     assunto = Column(String, nullable=True)
@@ -82,6 +84,9 @@ class MensagemAgendada(Base):
     criado_em = Column(DateTime, default=datetime.utcnow)
     enviado_em = Column(DateTime, nullable=True)
     erro_mensagem = Column(Text, nullable=True)
+    
+    # Relacionamento com Contato
+    contato = relationship("Contact", back_populates="mensagens_agendadas")
 
 # Tabela de Usuários
 class User(Base):

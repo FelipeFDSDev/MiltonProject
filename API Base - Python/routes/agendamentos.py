@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Query, HTTPException, Depends, status
 from typing import List, Optional
 from sqlalchemy.orm import Session
-from datetime import datetime
+from datetime import datetime, timezone
+import pytz
 
 from database import SessionLocal, MensagemAgendada, User
 from models import MensagemAgendadaCreate, MensagemAgendadaUpdate, MensagemAgendadaOut
@@ -18,27 +19,85 @@ async def criar_agendamento(
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
-    # Valida se a data de agendamento é futura
-    if mensagem.data_agendamento <= datetime.utcnow():
-        raise HTTPException(
-            status_code=400, 
-            detail="A data de agendamento deve ser no futuro."
+    try:
+        print(f"Recebida solicitação para criar agendamento: {mensagem}")
+        
+        # Busca o contato no banco de dados
+        from database import Contact
+        
+        print(f"Buscando contato com ID: {mensagem.contact_id}")
+        contato = db.query(Contact).filter(Contact.id == mensagem.contact_id).first()
+        
+        if not contato:
+            error_msg = f"Contato com ID {mensagem.contact_id} não encontrado"
+            print(error_msg)
+            raise HTTPException(status_code=404, detail=error_msg)
+        
+        print(f"Contato encontrado: {contato.name} ({contato.email})")
+        
+        # Define o destinatário com base no canal escolhido
+        canal = mensagem.canal.lower()
+        if canal == "email":
+            destinatario = contato.email
+            if not destinatario:
+                error_msg = f"O contato {contato.name} não possui um e-mail cadastrado"
+                print(error_msg)
+                raise HTTPException(status_code=400, detail=error_msg)
+        elif canal == "whatsapp":
+            destinatario = contato.phone
+            if not destinatario:
+                error_msg = f"O contato {contato.name} não possui um telefone cadastrado"
+                print(error_msg)
+                raise HTTPException(status_code=400, detail=error_msg)
+        else:
+            error_msg = "Canal inválido. Use 'email' ou 'whatsapp'."
+            print(error_msg)
+            raise HTTPException(status_code=400, detail=error_msg)
+
+        # Valida se a data de agendamento é futura
+        tz = pytz.timezone('America/Sao_Paulo')
+        agora = datetime.now(tz)
+        
+        # Garante que a data de agendamento está no fuso horário correto
+        data_agendamento = mensagem.data_agendamento
+        if data_agendamento.tzinfo is None:
+            data_agendamento = tz.localize(data_agendamento)
+        
+        if data_agendamento <= agora:
+            error_msg = f"A data de agendamento deve ser no futuro. Data atual: {agora}, Data fornecida: {data_agendamento}"
+            print(error_msg)
+            raise HTTPException(status_code=400, detail=error_msg)
+        
+        # Cria o agendamento no banco
+        print(f"Criando agendamento para {destinatario} no canal {canal}")
+        db_mensagem = MensagemAgendada(
+            canal=canal,
+            destinatario=destinatario,
+            assunto=mensagem.assunto,
+            conteudo=mensagem.conteudo,
+            data_agendamento=data_agendamento,
+            contato_id=contato.id
         )
-    
-    # Valida o canal
-    if mensagem.canal.lower() not in ["email", "whatsapp"]:
+        
+        db.add(db_mensagem)
+        db.commit()
+        db.refresh(db_mensagem)
+        
+        print(f"Agendamento criado com sucesso: ID {db_mensagem.id}")
+        return db_mensagem
+        
+    except HTTPException:
+        # Re-lança exceções HTTP que já foram tratadas
+        raise
+    except Exception as e:
+        # Captura outros erros inesperados
+        error_msg = f"Erro ao criar agendamento: {str(e)}"
+        print(error_msg)
+        db.rollback()  # Desfaz qualquer alteração no banco de dados
         raise HTTPException(
-            status_code=400,
-            detail="Canal inválido. Use 'email' ou 'whatsapp'."
+            status_code=500,
+            detail=error_msg
         )
-    
-    # Cria o agendamento no banco
-    db_mensagem = MensagemAgendada(**mensagem.model_dump())
-    db.add(db_mensagem)
-    db.commit()
-    db.refresh(db_mensagem)
-    
-    return db_mensagem
 
 
 @router.get("/", response_model=List[MensagemAgendadaOut])

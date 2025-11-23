@@ -58,11 +58,11 @@ class HistoricoOut(HistoricoBase):
 
 # ---- Modelos de Mensagem Agendada (para a API) ----
 class MensagemAgendadaCreate(BaseModel):
+    contact_id: int = Field(..., gt=0, description="ID do contato que receberá a mensagem")
     canal: str = Field(..., example="email", description="Canal de envio: email ou whatsapp")
-    destinatario: str = Field(..., example="cliente@teste.com")
     assunto: Optional[str] = Field(None, example="Lembrete Importante")
     conteudo: str = Field(..., example="Sua consulta está agendada para amanhã.")
-    data_agendamento: datetime = Field(..., example="2025-11-03T14:30:00", description="Data e hora para envio")
+    data_agendamento: datetime = Field(..., example="2025-11-23T14:30:00", description="Data e hora para envio")
 
 class MensagemAgendadaUpdate(BaseModel):
     canal: Optional[str] = None

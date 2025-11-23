@@ -1,7 +1,18 @@
+import os
+from dotenv import load_dotenv
 from fastapi import FastAPI, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 from starlette.middleware.base import BaseHTTPMiddleware
+
+# Carrega as variáveis de ambiente do arquivo .env
+load_dotenv()
+
+# Verifica se as variáveis de ambiente necessárias estão definidas
+required_env_vars = ['EMAIL_USER', 'EMAIL_PASS']
+for var in required_env_vars:
+    if not os.getenv(var):
+        print(f"AVISO: A variável de ambiente {var} não está definida no arquivo .env")
 
 # Importar rotas
 from routes import contacts, mensagens, agendamentos
