@@ -126,7 +126,7 @@ async def listar_agendamentos(
 
 @router.get("/consulta", response_model=List[MensagemAgendadaOut])
 async def consulta_agendamentos(
-    destinatario: Optional[str] = None,
+    contact_id: Optional[int] = None,
     status: Optional[str] = None,
     skip: int = 0,
     limit: int = 100,
@@ -134,14 +134,18 @@ async def consulta_agendamentos(
     db: Session = Depends(get_db)
 ):
     """
-    Consulta agendamentos filtrando por destinatário (contato) e/ou status.
-    - **destinatario**: email/telefone do contato
-    - **status**: AGENDADO, ENVIADO, CANCELADO, ERRO
+    Consulta agendamentos filtrando por ID do contato e/ou status.
+    
+    Parâmetros:
+    - **contact_id**: ID do contato para filtrar os agendamentos
+    - **status**: Status para filtrar (AGENDADO, ENVIADO, CANCELADO, ERRO)
+    - **skip**: Número de registros para pular (paginação)
+    - **limit**: Número máximo de registros a retornar (padrão: 100)
     """
     query = db.query(MensagemAgendada)
 
-    if destinatario:
-        query = query.filter(MensagemAgendada.destinatario.ilike(f"%{destinatario}%"))
+    if contact_id is not None:
+        query = query.filter(MensagemAgendada.contato_id == contact_id)
     if status:
         query = query.filter(MensagemAgendada.status == status.upper())
 
