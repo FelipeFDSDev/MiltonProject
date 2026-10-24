@@ -1,4 +1,5 @@
-# 📊 RELATÓRIO COMPLETO - API de Agendamento de Mensagens
+﻿> **Aviso de versão:** este relatório foi produzido em outubro de 2025 e contém exemplos de endpoints e configuração que não correspondem necessariamente à versão atual. Use o [README.md](README.md) como documentação principal atual e `Documentação/AGENDAMENTO.md` para os caminhos de API vigentes. Em particular, as rotas de contatos, mensagens e agendamentos atualmente usam o prefixo `/api` e exigem JWT. As variáveis `TWILIO_*` mostradas neste relatório não são consumidas pelo código atual.
+# ðŸ“Š RELATÃ“RIO COMPLETO - API de Agendamento de Mensagens
 
 **Projeto:** MiltonProject - API de Envio e Agendamento de Mensagens  
 **Tecnologia:** Python + FastAPI + Celery + Redis + SQLite  
@@ -6,13 +7,13 @@
 
 ---
 
-## 📑 ÍNDICE
+## ðŸ“‘ ÃNDICE
 
-1. [Visão Geral do Projeto](#1-visão-geral-do-projeto)
+1. [VisÃ£o Geral do Projeto](#1-visÃ£o-geral-do-projeto)
 2. [Arquitetura do Sistema](#2-arquitetura-do-sistema)
-3. [Pré-requisitos](#3-pré-requisitos)
-4. [Instalação Completa](#4-instalação-completa)
-5. [Configuração do Ambiente](#5-configuração-do-ambiente)
+3. [PrÃ©-requisitos](#3-prÃ©-requisitos)
+4. [InstalaÃ§Ã£o Completa](#4-instalaÃ§Ã£o-completa)
+5. [ConfiguraÃ§Ã£o do Ambiente](#5-configuraÃ§Ã£o-do-ambiente)
 6. [Como Executar o Projeto](#6-como-executar-o-projeto)
 7. [Endpoints da API](#7-endpoints-da-api)
 8. [Exemplos de Uso](#8-exemplos-de-uso)
@@ -22,35 +23,35 @@
 
 ---
 
-## 1. VISÃO GERAL DO PROJETO
+## 1. VISÃƒO GERAL DO PROJETO
 
-### 1.1 Descrição
+### 1.1 DescriÃ§Ã£o
 
 API REST desenvolvida em Python para gerenciamento de contatos e envio de mensagens com sistema de agendamento. Permite:
 
-- ✅ Gerenciar contatos (CRUD completo)
-- ✅ Enviar mensagens imediatas via Email e WhatsApp
-- ✅ **Agendar mensagens para data/hora específicas**
-- ✅ Gerenciar agendamentos (criar, listar, atualizar, cancelar)
-- ✅ Processamento automático via Celery Beat
+- âœ… Gerenciar contatos (CRUD completo)
+- âœ… Enviar mensagens imediatas via Email e WhatsApp
+- âœ… **Agendar mensagens para data/hora especÃ­ficas**
+- âœ… Gerenciar agendamentos (criar, listar, atualizar, cancelar)
+- âœ… Processamento automÃ¡tico via Celery Beat
 
 ### 1.2 Funcionalidades Principais
 
-| Módulo | Funcionalidade |
+| MÃ³dulo | Funcionalidade |
 |--------|----------------|
-| **Contatos** | CRUD, importação/exportação CSV |
+| **Contatos** | CRUD, importaÃ§Ã£o/exportaÃ§Ã£o CSV |
 | **Mensagens** | Envio imediato, agendamento simples (minutos) |
-| **Agendamentos** | Agendamento por data/hora, CRUD completo, processamento automático |
+| **Agendamentos** | Agendamento por data/hora, CRUD completo, processamento automÃ¡tico |
 | **Canais** | Email (SMTP), WhatsApp (Twilio) |
 
 ### 1.3 Tecnologias Utilizadas
 
-- **FastAPI** - Framework web moderno e rápido
+- **FastAPI** - Framework web moderno e rÃ¡pido
 - **SQLAlchemy** - ORM para banco de dados
 - **SQLite** - Banco de dados relacional
-- **Celery** - Processamento assíncrono de tarefas
+- **Celery** - Processamento assÃ­ncrono de tarefas
 - **Redis** - Broker de mensagens para Celery
-- **Celery Beat** - Agendador de tarefas periódicas
+- **Celery Beat** - Agendador de tarefas periÃ³dicas
 - **Twilio** - API para envio de WhatsApp
 - **SMTP** - Protocolo para envio de emails
 
@@ -61,97 +62,97 @@ API REST desenvolvida em Python para gerenciamento de contatos e envio de mensag
 ### 2.1 Diagrama de Componentes
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                        CLIENTE                              │
-│              (Browser, Postman, cURL, etc)                  │
-└────────────────────────┬────────────────────────────────────┘
-                         │ HTTP REST
-                         ▼
-┌─────────────────────────────────────────────────────────────┐
-│                     FASTAPI (main.py)                       │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
-│  │   Contacts   │  │  Mensagens   │  │ Agendamentos │     │
-│  │   Routes     │  │   Routes     │  │   Routes     │     │
-│  └──────────────┘  └──────────────┘  └──────────────┘     │
-└────────────────────────┬────────────────────────────────────┘
-                         │
-                         ▼
-┌─────────────────────────────────────────────────────────────┐
-│                  CAMADA DE SERVIÇOS                         │
-│  ┌──────────────────┐  ┌──────────────────────────────┐   │
-│  │ MensagemService  │  │   AgendamentoService         │   │
-│  └──────────────────┘  └──────────────────────────────┘   │
-│  ┌──────────────────┐  ┌──────────────────────────────┐   │
-│  │  EmailChannel    │  │   WhatsappChannel            │   │
-│  └──────────────────┘  └──────────────────────────────┘   │
-└────────────────────────┬────────────────────────────────────┘
-                         │
-        ┌────────────────┼────────────────┐
-        ▼                ▼                ▼
-┌──────────────┐  ┌──────────────┐  ┌──────────────┐
-│   SQLite     │  │    Redis     │  │    SMTP      │
-│   Database   │  │   (Broker)   │  │   Gmail      │
-└──────────────┘  └──────┬───────┘  └──────────────┘
-                         │
-        ┌────────────────┼────────────────┐
-        ▼                ▼                ▼
-┌──────────────┐  ┌──────────────┐  ┌──────────────┐
-│Celery Worker │  │ Celery Beat  │  │   Twilio     │
-│  (Tarefas)   │  │ (Scheduler)  │  │  WhatsApp    │
-└──────────────┘  └──────────────┘  └──────────────┘
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚                        CLIENTE                              â”‚
+â”‚              (Browser, Postman, cURL, etc)                  â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+                         â”‚ HTTP REST
+                         â–¼
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚                     FASTAPI (main.py)                       â”‚
+â”‚  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”     â”‚
+â”‚  â”‚   Contacts   â”‚  â”‚  Mensagens   â”‚  â”‚ Agendamentos â”‚     â”‚
+â”‚  â”‚   Routes     â”‚  â”‚   Routes     â”‚  â”‚   Routes     â”‚     â”‚
+â”‚  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜     â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+                         â”‚
+                         â–¼
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚                  CAMADA DE SERVIÃ‡OS                         â”‚
+â”‚  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”   â”‚
+â”‚  â”‚ MensagemService  â”‚  â”‚   AgendamentoService         â”‚   â”‚
+â”‚  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜   â”‚
+â”‚  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”   â”‚
+â”‚  â”‚  EmailChannel    â”‚  â”‚   WhatsappChannel            â”‚   â”‚
+â”‚  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜   â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+                         â”‚
+        â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+        â–¼                â–¼                â–¼
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚   SQLite     â”‚  â”‚    Redis     â”‚  â”‚    SMTP      â”‚
+â”‚   Database   â”‚  â”‚   (Broker)   â”‚  â”‚   Gmail      â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜  â””â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”˜  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+                         â”‚
+        â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+        â–¼                â–¼                â–¼
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚Celery Worker â”‚  â”‚ Celery Beat  â”‚  â”‚   Twilio     â”‚
+â”‚  (Tarefas)   â”‚  â”‚ (Scheduler)  â”‚  â”‚  WhatsApp    â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 ```
 
 ### 2.2 Fluxo de Agendamento
 
 ```
 1. Cliente cria agendamento via POST /agendamentos/
-   ↓
+   â†“
 2. FastAPI valida dados e salva no SQLite (status: AGENDADO)
-   ↓
+   â†“
 3. Celery Beat executa a cada 60 segundos
-   ↓
+   â†“
 4. Busca mensagens com data_agendamento <= agora
-   ↓
+   â†“
 5. Celery Worker processa cada mensagem
-   ↓
+   â†“
 6. Envia via EmailChannel ou WhatsappChannel
-   ↓
+   â†“
 7. Atualiza status (ENVIADO ou ERRO) no banco
 ```
 
 ---
 
-## 3. PRÉ-REQUISITOS
+## 3. PRÃ‰-REQUISITOS
 
-### 3.1 Software Necessário
+### 3.1 Software NecessÃ¡rio
 
-| Software | Versão Mínima | Download |
+| Software | VersÃ£o MÃ­nima | Download |
 |----------|---------------|----------|
 | **Python** | 3.8+ | https://www.python.org/downloads/ |
 | **Redis** | 6.0+ | https://redis.io/download/ |
 | **Git** | Qualquer | https://git-scm.com/downloads |
-| **pip** | 20.0+ | Incluído com Python |
+| **pip** | 20.0+ | IncluÃ­do com Python |
 
 ### 3.2 Contas Externas (Opcional)
 
 - **Gmail** - Para envio de emails (ou outro provedor SMTP)
-- **Twilio** - Para envio de WhatsApp (conta gratuita disponível)
+- **Twilio** - Para envio de WhatsApp (conta gratuita disponÃ­vel)
 
 ### 3.3 Sistema Operacional
 
-- ✅ Windows 10/11
-- ✅ Linux (Ubuntu, Debian, etc)
-- ✅ macOS
+- âœ… Windows 10/11
+- âœ… Linux (Ubuntu, Debian, etc)
+- âœ… macOS
 
 ---
 
-## 4. INSTALAÇÃO COMPLETA
+## 4. INSTALAÃ‡ÃƒO COMPLETA
 
 ### 4.1 Clonar o Projeto
 
 ```bash
 cd C:\Users\Nefalem\Desktop
-# Projeto já está em: MiltonProject
+# Projeto jÃ¡ estÃ¡ em: MiltonProject
 ```
 
 ### 4.2 Criar Ambiente Virtual
@@ -170,14 +171,14 @@ python3 -m venv venv
 source venv/bin/activate
 ```
 
-### 4.3 Instalar Dependências
+### 4.3 Instalar DependÃªncias
 
 ```bash
 pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-**Dependências instaladas:**
+**DependÃªncias instaladas:**
 - fastapi
 - uvicorn[standard]
 - pydantic
@@ -191,29 +192,29 @@ pip install -r requirements.txt
 
 ### 4.4 Instalar Redis
 
-**Opção A - Docker (Recomendado):**
+**OpÃ§Ã£o A - Docker (Recomendado):**
 ```bash
 docker run -d --name redis-milton -p 6379:6379 redis
 ```
 
-**Opção B - Windows (Manual):**
+**OpÃ§Ã£o B - Windows (Manual):**
 1. Baixe: https://github.com/microsoftarchive/redis/releases
 2. Extraia e execute: `redis-server.exe`
 
-**Opção C - Linux:**
+**OpÃ§Ã£o C - Linux:**
 ```bash
 sudo apt-get update
 sudo apt-get install redis-server
 sudo systemctl start redis
 ```
 
-**Opção D - macOS:**
+**OpÃ§Ã£o D - macOS:**
 ```bash
 brew install redis
 brew services start redis
 ```
 
-### 4.5 Verificar Instalação do Redis
+### 4.5 Verificar InstalaÃ§Ã£o do Redis
 
 ```bash
 redis-cli ping
@@ -222,33 +223,33 @@ redis-cli ping
 
 ---
 
-## 5. CONFIGURAÇÃO DO AMBIENTE
+## 5. CONFIGURAÃ‡ÃƒO DO AMBIENTE
 
 ### 5.1 Arquivo .env
 
 Crie ou edite o arquivo `.env` na pasta `API Base - Python`:
 
 ```env
-# Configurações de Email (Gmail)
+# ConfiguraÃ§Ãµes de Email (Gmail)
 EMAIL_USER=seu_email@gmail.com
 EMAIL_PASS=sua_senha_de_app
 
-# Configurações do Twilio (WhatsApp)
+# ConfiguraÃ§Ãµes do Twilio (WhatsApp)
 TWILIO_ACCOUNT_SID=seu_account_sid
 TWILIO_AUTH_TOKEN=seu_auth_token
 TWILIO_WHATSAPP_NUMBER=whatsapp:+14155238886
 
-# Configurações do Redis
+# ConfiguraÃ§Ãµes do Redis
 REDIS_URL=redis://localhost:6379/0
 
-# Configurações do Banco
+# ConfiguraÃ§Ãµes do Banco
 DATABASE_URL=sqlite:///./sql_app.db
 ```
 
 ### 5.2 Configurar Gmail para Envio de Emails
 
 1. Acesse: https://myaccount.google.com/security
-2. Ative "Verificação em duas etapas"
+2. Ative "VerificaÃ§Ã£o em duas etapas"
 3. Gere uma "Senha de app"
 4. Use essa senha no arquivo `.env`
 
@@ -256,18 +257,18 @@ DATABASE_URL=sqlite:///./sql_app.db
 
 1. Crie conta gratuita: https://www.twilio.com/try-twilio
 2. Obtenha Account SID e Auth Token
-3. Configure número de WhatsApp no Twilio Sandbox
+3. Configure nÃºmero de WhatsApp no Twilio Sandbox
 4. Atualize o arquivo `.env`
 
 ### 5.4 Inicializar Banco de Dados
 
-O banco será criado automaticamente na primeira execução da API.
+O banco serÃ¡ criado automaticamente na primeira execuÃ§Ã£o da API.
 
 ---
 
 ## 6. COMO EXECUTAR O PROJETO
 
-### 6.1 Ordem de Execução
+### 6.1 Ordem de ExecuÃ§Ã£o
 
 Execute os comandos abaixo em **4 terminais separados**:
 
@@ -291,7 +292,7 @@ venv\Scripts\activate  # Windows
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-**Saída esperada:**
+**SaÃ­da esperada:**
 ```
 INFO:     Uvicorn running on http://0.0.0.0:8000
 INFO:     Application startup complete.
@@ -310,7 +311,7 @@ celery -A celery_app worker --loglevel=info -P solo
 celery -A celery_app worker --loglevel=info
 ```
 
-**Saída esperada:**
+**SaÃ­da esperada:**
 ```
 [tasks]
   . service.scheduler.agendar_envio
@@ -326,12 +327,12 @@ venv\Scripts\activate
 celery -A celery_app beat --loglevel=info
 ```
 
-**Saída esperada:**
+**SaÃ­da esperada:**
 ```
 Scheduler: Sending due task processar-mensagens-agendadas
 ```
 
-### 6.2 Verificar se Está Funcionando
+### 6.2 Verificar se EstÃ¡ Funcionando
 
 **1. Teste a API:**
 ```bash
@@ -346,7 +347,7 @@ Resposta esperada:
 }
 ```
 
-**2. Acesse a documentação:**
+**2. Acesse a documentaÃ§Ã£o:**
 - Swagger UI: http://localhost:8000/docs
 - ReDoc: http://localhost:8000/redoc
 
@@ -361,7 +362,7 @@ python exemplo_agendamento.py
 
 ### 7.1 Contatos
 
-| Método | Endpoint | Descrição |
+| MÃ©todo | Endpoint | DescriÃ§Ã£o |
 |--------|----------|-----------|
 | POST | `/contacts/` | Criar contato |
 | GET | `/contacts/` | Listar contatos |
@@ -373,14 +374,14 @@ python exemplo_agendamento.py
 
 ### 7.2 Mensagens
 
-| Método | Endpoint | Descrição |
+| MÃ©todo | Endpoint | DescriÃ§Ã£o |
 |--------|----------|-----------|
 | POST | `/mensagem/enviar/` | Enviar mensagem imediata |
 | POST | `/mensagem/agendar/` | Agendar com countdown (minutos) |
 
 ### 7.3 Agendamentos (NOVO)
 
-| Método | Endpoint | Descrição |
+| MÃ©todo | Endpoint | DescriÃ§Ã£o |
 |--------|----------|-----------|
 | POST | `/agendamentos/` | Criar agendamento |
 | GET | `/agendamentos/` | Listar agendamentos |
@@ -402,7 +403,7 @@ curl -X POST "http://localhost:8000/agendamentos/" \
   -d '{
     "canal": "email",
     "destinatario": "cliente@empresa.com",
-    "assunto": "Renovação de Contrato",
+    "assunto": "RenovaÃ§Ã£o de Contrato",
     "conteudo": "Seu contrato vence em 10 dias. Renove agora!",
     "data_agendamento": "2025-11-03T09:00:00"
   }'
@@ -424,7 +425,7 @@ curl -X DELETE http://localhost:8000/agendamentos/1
 
 ```bash
 curl -X POST "http://localhost:8000/mensagem/enviar/" \
-  -d "canal=email&destinatario=teste@teste.com&conteudo=Olá!&assunto=Teste"
+  -d "canal=email&destinatario=teste@teste.com&conteudo=OlÃ¡!&assunto=Teste"
 ```
 
 ### 8.5 Criar Contato
@@ -433,7 +434,7 @@ curl -X POST "http://localhost:8000/mensagem/enviar/" \
 curl -X POST "http://localhost:8000/contacts/" \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "João Silva",
+    "name": "JoÃ£o Silva",
     "email": "joao@empresa.com",
     "phone": "11999998888",
     "canalPref": "email",
@@ -453,11 +454,11 @@ Execute o script de exemplo:
 python exemplo_agendamento.py
 ```
 
-Este script irá:
+Este script irÃ¡:
 1. Criar um agendamento para daqui a 2 minutos
 2. Listar agendamentos ativos
 3. Consultar o agendamento criado
-4. Opção de cancelar ou processar
+4. OpÃ§Ã£o de cancelar ou processar
 
 ### 9.2 Teste Manual via Swagger
 
@@ -482,7 +483,7 @@ curl -X POST "http://localhost:8000/agendamentos/" \
   }'
 
 # Aguardar 1 minuto e verificar logs do Celery Beat
-# Ou forçar processamento:
+# Ou forÃ§ar processamento:
 curl -X POST http://localhost:8000/agendamentos/processar/manual
 ```
 
@@ -492,32 +493,32 @@ curl -X POST http://localhost:8000/agendamentos/processar/manual
 
 ### 10.1 Problemas Comuns
 
-#### ❌ Redis não conecta
+#### âŒ Redis nÃ£o conecta
 
 **Erro:**
 ```
 celery.exceptions.ImproperlyConfigured: Error connecting to Redis
 ```
 
-**Solução:**
+**SoluÃ§Ã£o:**
 ```bash
-# Verificar se Redis está rodando
+# Verificar se Redis estÃ¡ rodando
 redis-cli ping
 
-# Se não estiver, iniciar:
+# Se nÃ£o estiver, iniciar:
 redis-server
 # ou
 docker start redis-milton
 ```
 
-#### ❌ Porta 8000 já em uso
+#### âŒ Porta 8000 jÃ¡ em uso
 
 **Erro:**
 ```
 ERROR: [Errno 10048] Only one usage of each socket address
 ```
 
-**Solução:**
+**SoluÃ§Ã£o:**
 ```bash
 # Use outra porta
 uvicorn main:app --port 8001
@@ -527,41 +528,41 @@ netstat -ano | findstr :8000
 taskkill /PID <PID> /F
 ```
 
-#### ❌ Celery não processa mensagens
+#### âŒ Celery nÃ£o processa mensagens
 
-**Problema:** Mensagens não são enviadas automaticamente
+**Problema:** Mensagens nÃ£o sÃ£o enviadas automaticamente
 
-**Solução:**
-1. Verifique se Celery Beat está rodando
-2. Verifique logs do Beat para ver se está executando a task
-3. Verifique se Worker está rodando
+**SoluÃ§Ã£o:**
+1. Verifique se Celery Beat estÃ¡ rodando
+2. Verifique logs do Beat para ver se estÃ¡ executando a task
+3. Verifique se Worker estÃ¡ rodando
 4. Teste processamento manual
 
-#### ❌ Erro ao enviar email
+#### âŒ Erro ao enviar email
 
 **Erro:**
 ```
 [EMAIL] Erro ao enviar: (535, 'Authentication failed')
 ```
 
-**Solução:**
+**SoluÃ§Ã£o:**
 1. Verifique credenciais no `.env`
-2. Use senha de app do Gmail (não a senha normal)
-3. Verifique se 2FA está ativo no Gmail
+2. Use senha de app do Gmail (nÃ£o a senha normal)
+3. Verifique se 2FA estÃ¡ ativo no Gmail
 
-#### ❌ Módulo não encontrado
+#### âŒ MÃ³dulo nÃ£o encontrado
 
 **Erro:**
 ```
 ModuleNotFoundError: No module named 'fastapi'
 ```
 
-**Solução:**
+**SoluÃ§Ã£o:**
 ```bash
 # Ative o ambiente virtual
 venv\Scripts\activate
 
-# Reinstale dependências
+# Reinstale dependÃªncias
 pip install -r requirements.txt
 ```
 
@@ -588,53 +589,53 @@ SELECT * FROM mensagens_agendadas;
 
 ```
 MiltonProject/
-│
-├── API Base - Python/
-│   ├── venv/                          # Ambiente virtual
-│   ├── __pycache__/                   # Cache Python
-│   │
-│   ├── routes/                        # Rotas da API
-│   │   ├── contacts.py               # CRUD de contatos
-│   │   ├── mensagens.py              # Envio de mensagens
-│   │   └── agendamentos.py           # Sistema de agendamento
-│   │
-│   ├── service/                       # Lógica de negócio
-│   │   ├── mensagem_service.py       # Serviço de mensagens
-│   │   ├── agendamento_service.py    # Serviço de agendamento
-│   │   ├── scheduler.py              # Tasks Celery
-│   │   ├── email_channel.py          # Canal de email
-│   │   └── whatsapp_channel.py       # Canal de WhatsApp
-│   │
-│   ├── main.py                        # Aplicação FastAPI
-│   ├── models.py                      # Modelos Pydantic e ORM
-│   ├── database.py                    # Configuração do banco
-│   ├── celery_app.py                  # Configuração Celery
-│   ├── .env                           # Variáveis de ambiente
-│   ├── requirements.txt               # Dependências
-│   ├── sql_app.db                     # Banco SQLite
-│   ├── exemplo_agendamento.py         # Script de teste
-│   └── INICIAR_SISTEMA.md            # Guia rápido
-│
-├── Documentação/
-│   └── AGENDAMENTO.md                 # Documentação detalhada
-│
-├── README.md                          # Readme do projeto
-└── RELATORIO_COMPLETO.md             # Este arquivo
+â”‚
+â”œâ”€â”€ API Base - Python/
+â”‚   â”œâ”€â”€ venv/                          # Ambiente virtual
+â”‚   â”œâ”€â”€ __pycache__/                   # Cache Python
+â”‚   â”‚
+â”‚   â”œâ”€â”€ routes/                        # Rotas da API
+â”‚   â”‚   â”œâ”€â”€ contacts.py               # CRUD de contatos
+â”‚   â”‚   â”œâ”€â”€ mensagens.py              # Envio de mensagens
+â”‚   â”‚   â””â”€â”€ agendamentos.py           # Sistema de agendamento
+â”‚   â”‚
+â”‚   â”œâ”€â”€ service/                       # LÃ³gica de negÃ³cio
+â”‚   â”‚   â”œâ”€â”€ mensagem_service.py       # ServiÃ§o de mensagens
+â”‚   â”‚   â”œâ”€â”€ agendamento_service.py    # ServiÃ§o de agendamento
+â”‚   â”‚   â”œâ”€â”€ scheduler.py              # Tasks Celery
+â”‚   â”‚   â”œâ”€â”€ email_channel.py          # Canal de email
+â”‚   â”‚   â””â”€â”€ whatsapp_channel.py       # Canal de WhatsApp
+â”‚   â”‚
+â”‚   â”œâ”€â”€ main.py                        # AplicaÃ§Ã£o FastAPI
+â”‚   â”œâ”€â”€ models.py                      # Modelos Pydantic e ORM
+â”‚   â”œâ”€â”€ database.py                    # ConfiguraÃ§Ã£o do banco
+â”‚   â”œâ”€â”€ celery_app.py                  # ConfiguraÃ§Ã£o Celery
+â”‚   â”œâ”€â”€ .env                           # VariÃ¡veis de ambiente
+â”‚   â”œâ”€â”€ requirements.txt               # DependÃªncias
+â”‚   â”œâ”€â”€ sql_app.db                     # Banco SQLite
+â”‚   â”œâ”€â”€ exemplo_agendamento.py         # Script de teste
+â”‚   â””â”€â”€ INICIAR_SISTEMA.md            # Guia rÃ¡pido
+â”‚
+â”œâ”€â”€ DocumentaÃ§Ã£o/
+â”‚   â””â”€â”€ AGENDAMENTO.md                 # DocumentaÃ§Ã£o detalhada
+â”‚
+â”œâ”€â”€ README.md                          # Readme do projeto
+â””â”€â”€ RELATORIO_COMPLETO.md             # Este arquivo
 ```
 
 ---
 
-## 📊 RESUMO EXECUTIVO
+## ðŸ“Š RESUMO EXECUTIVO
 
-### ✅ O Que o Sistema Faz
+### âœ… O Que o Sistema Faz
 
 1. **Gerencia contatos** com CRUD completo
 2. **Envia mensagens imediatas** via Email e WhatsApp
-3. **Agenda mensagens** para data/hora específicas
+3. **Agenda mensagens** para data/hora especÃ­ficas
 4. **Processa automaticamente** agendamentos via Celery Beat
 5. **Gerencia agendamentos** (criar, listar, atualizar, cancelar)
 
-### 🚀 Como Iniciar (Resumo)
+### ðŸš€ Como Iniciar (Resumo)
 
 ```bash
 # 1. Ativar ambiente virtual
@@ -656,28 +657,28 @@ celery -A celery_app beat --loglevel=info
 python exemplo_agendamento.py
 ```
 
-### 📚 Documentação Adicional
+### ðŸ“š DocumentaÃ§Ã£o Adicional
 
 - **Swagger UI:** http://localhost:8000/docs
 - **ReDoc:** http://localhost:8000/redoc
-- **Guia Rápido:** `INICIAR_SISTEMA.md`
-- **Documentação Completa:** `Documentação/AGENDAMENTO.md`
+- **Guia RÃ¡pido:** `INICIAR_SISTEMA.md`
+- **DocumentaÃ§Ã£o Completa:** `DocumentaÃ§Ã£o/AGENDAMENTO.md`
 
 ---
 
-## 🎯 CONCLUSÃO
+## ðŸŽ¯ CONCLUSÃƒO
 
-O sistema está **100% funcional** e pronto para uso. Todos os componentes foram implementados e testados:
+O sistema estÃ¡ **100% funcional** e pronto para uso. Todos os componentes foram implementados e testados:
 
-- ✅ API REST com FastAPI
-- ✅ Banco de dados SQLite
-- ✅ Sistema de agendamento completo
-- ✅ Processamento automático com Celery Beat
-- ✅ Suporte para Email e WhatsApp
-- ✅ Documentação completa
-- ✅ Scripts de teste
+- âœ… API REST com FastAPI
+- âœ… Banco de dados SQLite
+- âœ… Sistema de agendamento completo
+- âœ… Processamento automÃ¡tico com Celery Beat
+- âœ… Suporte para Email e WhatsApp
+- âœ… DocumentaÃ§Ã£o completa
+- âœ… Scripts de teste
 
-**Para suporte ou dúvidas, consulte a documentação em `Documentação/AGENDAMENTO.md`**
+**Para suporte ou dÃºvidas, consulte a documentaÃ§Ã£o em `DocumentaÃ§Ã£o/AGENDAMENTO.md`**
 
 ---
 

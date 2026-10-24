@@ -1,176 +1,51 @@
-# 🚀 Guia Rápido - Iniciar Sistema de Agendamento
+﻿# Guia de inicialização local
+
+Este guia corresponde à estrutura atual do projeto. Requisitos detalhados, arquitetura, configuração e limitações estão no [README](../README.md).
 
 ## Pré-requisitos
 
-- ✅ Python 3.8+
-- ✅ Redis instalado e rodando
-- ✅ Dependências instaladas (`pip install -r requirements.txt`)
+- Python 3.10 ou superior.
+- Redis em `localhost:6379` (pode ser executado com Docker).
+- Credenciais SMTP para efetuar envio de e-mails. WhatsApp requer alterações descritas no README.
 
----
+## Instalar dependências
 
-## Passo a Passo
+No PowerShell, a partir da raiz do repositório:
 
-### 1️⃣ Iniciar Redis
-
-**Opção A - Docker (Recomendado):**
-```bash
-docker run -d -p 6379:6379 redis
-```
-
-**Opção B - Redis Local:**
-```bash
-redis-server
-```
-
----
-
-### 2️⃣ Iniciar API FastAPI
-
-Abra um terminal e execute:
-
-```bash
+```powershell
 cd "API Base - Python"
-uvicorn main:app --reload
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
 ```
 
-✅ API estará disponível em: http://localhost:8000
-📚 Documentação interativa: http://localhost:8000/docs
+## Iniciar os serviços
 
----
+Inicie o Redis em um terminal:
 
-### 3️⃣ Iniciar Celery Worker
+```powershell
+docker run --name redis-milton -p 6379:6379 -d redis
+```
 
-Abra um **NOVO** terminal e execute:
+Configure as variáveis SMTP descritas no README em `API Base - Python/.env`. Depois, abra terminais separados, ative o ambiente virtual em cada um e execute a partir de `API Base - Python`:
 
-```bash
-cd "API Base - Python"
+```powershell
+python -m uvicorn main:app --reload
+```
+
+```powershell
 celery -A celery_app worker --loglevel=info -P solo
 ```
 
-**Nota:** No Windows, use `-P solo` para evitar problemas.
-
----
-
-### 4️⃣ Iniciar Celery Beat (Agendador)
-
-Abra um **NOVO** terminal e execute:
-
-```bash
-cd "API Base - Python"
+```powershell
 celery -A celery_app beat --loglevel=info
 ```
 
-Este processo verifica agendamentos a cada 1 minuto e envia mensagens automaticamente.
+A API cria as tabelas SQLite ao iniciar. Endpoints de negócio exigem JWT. Registre um usuário por `POST /auth/register`, autentique em `POST /auth/token` e autorize as chamadas com `Authorization: Bearer <token>`. Não use credenciais padrão de exemplos antigos.
 
----
+- API: `http://127.0.0.1:8000/`
+- Health check: `http://127.0.0.1:8000/health`
+- Swagger: `http://127.0.0.1:8000/docs`
+- ReDoc: `http://127.0.0.1:8000/redoc`
 
-## ✅ Verificar se Está Funcionando
-
-### Teste 1: API Rodando
-
-Acesse no navegador: http://localhost:8000
-
-Deve retornar:
-```json
-{
-  "status": "ok",
-  "service": "Communication and Scheduling API"
-}
-```
-
-### Teste 2: Criar Agendamento
-
-Execute o script de exemplo:
-
-```bash
-python exemplo_agendamento.py
-```
-
-Ou use o Swagger UI: http://localhost:8000/docs
-
----
-
-## 📋 Resumo dos Terminais
-
-Você deve ter **4 terminais abertos**:
-
-| Terminal | Comando | Descrição |
-|----------|---------|-----------|
-| 1 | `redis-server` ou Docker | Banco de dados para Celery |
-| 2 | `uvicorn main:app --reload` | API FastAPI |
-| 3 | `celery -A celery_app worker -P solo` | Worker para processar tarefas |
-| 4 | `celery -A celery_app beat` | Agendador periódico |
-
----
-
-## 🧪 Testar o Sistema
-
-### Criar um agendamento para daqui a 2 minutos:
-
-```bash
-curl -X POST "http://localhost:8000/agendamentos/" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "canal": "email",
-    "destinatario": "teste@teste.com",
-    "assunto": "Teste",
-    "conteudo": "Mensagem de teste!",
-    "data_agendamento": "2025-10-24T20:00:00"
-  }'
-```
-
-### Listar agendamentos ativos:
-
-```bash
-curl http://localhost:8000/agendamentos/?status=AGENDADO
-```
-
----
-
-## 🛑 Parar o Sistema
-
-1. Pressione `Ctrl+C` em cada terminal
-2. Pare o Redis (se não estiver usando Docker)
-
----
-
-## ❓ Problemas Comuns
-
-### Redis não conecta
-```
-Erro: Error connecting to Redis
-Solução: Verifique se o Redis está rodando na porta 6379
-```
-
-### Celery não processa mensagens
-```
-Problema: Mensagens não são enviadas
-Solução: Verifique se o Celery Beat está rodando
-```
-
-### Porta 8000 já em uso
-```
-Erro: Address already in use
-Solução: Use outra porta: uvicorn main:app --port 8001
-```
-
----
-
-## 📚 Documentação Completa
-
-Consulte `Documentação/AGENDAMENTO.md` para detalhes completos sobre:
-- Todos os endpoints disponíveis
-- Exemplos de uso
-- Arquitetura do sistema
-- Troubleshooting avançado
-
----
-
-## 🎯 Próximos Passos
-
-1. Configure suas credenciais de email no arquivo `.env`
-2. Configure suas credenciais do Twilio para WhatsApp
-3. Teste criar agendamentos para diferentes datas
-4. Explore a documentação interativa em `/docs`
-
-**Pronto! Seu sistema de agendamento está funcionando! 🎉**
+Rotas de agendamento usam `/api/agendamentos/`; veja [AGENDAMENTO.md](../Documentação/AGENDAMENTO.md) para payloads e filtros. Ao terminar, use `Ctrl+C` em cada terminal. Não remova o banco `sql_app.db` se precisar preservar os dados.
